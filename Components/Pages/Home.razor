@@ -1,0 +1,103 @@
+@page "/"
+@using KdyBylUklid.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>Kdy byl úklid</PageTitle>
+
+<div class="container">
+    <h1>🧹 Kdy byl úklid</h1>
+
+    @if (UnpaidRecords.Any())
+    {
+        <section class="summary-section">
+            <div class="summary-content">
+                <span class="summary-label">Nezaplaceno:</span>
+                <span class="summary-value">@UnpaidHours.ToString("0.#") h</span>
+                <span class="summary-count">(@UnpaidRecords.Count úklidů@(IncompleteCount > 0 ? $", {IncompleteCount} probíhá" : ""))</span>
+            </div>
+            <form method="post" @formname="mark-all-paid" @onsubmit="MarkAllPaid" Enhance>
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-small" onclick="return confirm('Označit všechny nezaplacené jako zaplacené?')">
+                    Vše zaplaceno
+                </button>
+            </form>
+        </section>
+    }
+
+    <a href="/add" class="btn btn-primary btn-block">+ Přidat záznam</a>
+
+    <section class="list-section">
+        @if (!Records.Any())
+        {
+            <p class="empty-state">Zatím žádné záznamy</p>
+        }
+        else
+        {
+            @foreach (var monthGroup in RecordsByMonth)
+            {
+                <div class="month-group">
+                    <h3 class="month-header">@monthGroup.Key</h3>
+                    <ul class="record-list">
+                        @foreach (var record in monthGroup.Value)
+                        {
+                            <li class="record-item @(record.IsPaid ? "paid" : "unpaid") @(!record.IsComplete ? "incomplete" : "")">
+                                <a href="/edit/@record.Id" class="record-link">
+                                    <div class="record-main">
+                                        <span class="record-date">@record.Date.ToString("d.M.")</span>
+                                        <span class="record-time">
+                                            @record.TimeFrom.ToString("H:mm")–@(record.TimeTo?.ToString("H:mm") ?? "?")
+                                        </span>
+                                    </div>
+                                    <div class="record-right">
+                                        <span class="record-cleaners">@record.CleanerCount×👩‍🦰</span>
+                                        @if (record.TotalHours.HasValue)
+                                        {
+                                            <span class="record-hours">@record.TotalHours.Value.ToString("0.#")h</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="record-hours incomplete-badge">probíhá</span>
+                                        }
+                                        @if (record.IsPaid)
+                                        {
+                                            <span class="record-paid">✓</span>
+                                        }
+                                    </div>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
+    </section>
+</div>
+
+@code {
+    public List<CleaningRecord> Records { get; set; } = [];
+    public List<CleaningRecord> UnpaidRecords => Records.Where(r => !r.IsPaid).ToList();
+    public double UnpaidHours => UnpaidRecords.Where(r => r.TotalHours.HasValue).Sum(r => r.TotalHours!.Value);
+    public int IncompleteCount => UnpaidRecords.Count(r => !r.IsComplete);
+    public Dictionary<string, List<CleaningRecord>> RecordsByMonth => Records
+        .GroupBy(r => r.Date.ToString("MMMM yyyy"))
+        .ToDictionary(g => g.Key, g => g.ToList());
+
+    protected override async Task OnInitializedAsync()
+    {
+        Records = await Db.CleaningRecords
+            .OrderByDescending(r => r.Date)
+            .ThenByDescending(r => r.TimeFrom)
+            .ToListAsync();
+    }
+
+    private async Task MarkAllPaid()
+    {
+        await Db.CleaningRecords
+            .Where(r => !r.IsPaid)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsPaid, true));
+
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+}
