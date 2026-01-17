@@ -10,41 +10,37 @@
     <h1>@(Id.HasValue ? "Upravit záznam" : "Nový záznam")</h1>
 
     <section class="form-section">
-        <EditForm Model="ModelSafe" OnValidSubmit="Save" FormName="cleaning-form" Enhance>
-            <DataAnnotationsValidator />
+        <EditForm Model="Model" OnSubmit="Save" FormName="cleaning-form" Enhance>
 
             <div class="form-group">
                 <label for="date">Datum</label>
                 <input type="text" id="date" name="DateString" class="datepicker" value="@DateString" placeholder="d.m.rrrr" />
-                <ValidationMessage For="() => ModelSafe.Date" />
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="timeFrom">Od</label>
                     <input type="text" id="timeFrom" name="TimeFromString" class="timepicker" value="@TimeFromString" placeholder="h:mm" />
-                    <ValidationMessage For="() => ModelSafe.TimeFrom" />
                 </div>
 
                 <div class="form-group">
                     <label for="timeTo">Do</label>
                     <input type="text" id="timeTo" name="TimeToString" class="timepicker" value="@TimeToString" placeholder="h:mm" />
-                    <ValidationMessage For="() => ModelSafe.TimeTo" />
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Počet uklízeček</label>
                 <div class="cleaner-picker">
-                    <button type="button" class="cleaner-btn @(ModelSafe.CleanerCount == 1 ? "active" : "")"
+                    <button type="button" class="cleaner-btn @(Model.CleanerCount == 1 ? "active" : "")"
                             onclick="document.getElementById('cleanerCount').value = 1; this.parentElement.querySelectorAll('.cleaner-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
                         1×👩‍🦰
                     </button>
-                    <button type="button" class="cleaner-btn @(ModelSafe.CleanerCount == 2 ? "active" : "")"
+                    <button type="button" class="cleaner-btn @(Model.CleanerCount == 2 ? "active" : "")"
                             onclick="document.getElementById('cleanerCount').value = 2; this.parentElement.querySelectorAll('.cleaner-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
                         2×👩‍🦰
                     </button>
-                    <input type="number" id="cleanerCount" name="CleanerCount" value="@ModelSafe.CleanerCount" min="1" max="10" class="cleaner-input" />
+                    <input type="number" id="cleanerCount" name="CleanerCount" value="@Model.CleanerCount" min="1" max="10" class="cleaner-input" />
                 </div>
             </div>
 
@@ -52,7 +48,7 @@
             {
                 <div class="form-group checkbox-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" name="IsPaid" value="true" checked="@ModelSafe.IsPaid" />
+                        <input type="checkbox" name="IsPaid" value="true" checked="@Model.IsPaid" />
                         <span>Zaplaceno</span>
                     </label>
                 </div>
@@ -82,10 +78,7 @@
     [Parameter]
     public int? Id { get; set; }
 
-    [SupplyParameterFromForm(FormName = "cleaning-form")]
-    public CleaningRecord? Model { get; set; }
-
-    private CleaningRecord ModelSafe => Model ?? new();
+    public CleaningRecord Model { get; set; } = new();
 
     [SupplyParameterFromForm(Name = "DateString")]
     public string? DateStringForm { get; set; }
@@ -102,39 +95,30 @@
     [SupplyParameterFromForm(Name = "IsPaid")]
     public string? IsPaidForm { get; set; }
 
-    private string DateString => ModelSafe.Date.ToString("d.M.yyyy");
-    private string TimeFromString => ModelSafe.TimeFrom.ToString("H:mm");
-    private string TimeToString => ModelSafe.TimeTo?.ToString("H:mm") ?? "";
+    private string DateString => Model.Date.ToString("d.M.yyyy");
+    private string TimeFromString => Model.TimeFrom.ToString("H:mm");
+    private string TimeToString => Model.TimeTo?.ToString("H:mm") ?? "";
 
     protected override async Task OnInitializedAsync()
     {
-        Model ??= new();
-
-        if (Id.HasValue && Model.Id == 0)
+        if (Id.HasValue)
         {
             var existing = await Db.CleaningRecords.FindAsync(Id.Value);
             if (existing != null)
-            {
                 Model = existing;
-            }
             else
-            {
                 Nav.NavigateTo("/");
-            }
         }
-        else if (!Id.HasValue && Model.Id == 0)
+        else
         {
             Model.Date = DateOnly.FromDateTime(DateTime.Today);
             Model.TimeFrom = new TimeOnly(9, 0);
-            Model.TimeTo = null; // Prázdné - úklid ještě probíhá
             Model.CleanerCount = 1;
         }
     }
 
     private async Task Save()
     {
-        Model ??= new();
-
         // Parse form values
         if (DateOnly.TryParse(DateStringForm, out var date))
             Model.Date = date;
