@@ -39,6 +39,16 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 app.UseForwardedHeaders();
 
+// Debug: vypíše headers z proxy
+app.Use((ctx, nxt) =>
+{
+    var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+    var forwardedFor = ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+    var scheme = ctx.Request.Scheme;
+    Console.WriteLine($"[Headers] X-Forwarded-Proto: {proto ?? "(none)"}, X-Forwarded-For: {forwardedFor ?? "(none)"}, Scheme: {scheme}");
+    return nxt();
+});
+
 // Fallback: pokud proxy neposlal X-Forwarded-Proto, vynutíme HTTPS
 if (!app.Environment.IsDevelopment())
 {
