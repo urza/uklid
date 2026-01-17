@@ -1,6 +1,7 @@
 using System.Globalization;
 using KdyBylUklid.Components;
 using KdyBylUklid.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var czechCulture = new CultureInfo("cs-CZ");
@@ -11,6 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents();
+
+// Pro reverse proxy (X-Forwarded-Proto header)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "db", "uklid.db");
 Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
@@ -28,13 +35,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-
-// Workaround pro Blazor SSR za reverse proxy (issue #57454)
-app.Use((ctx, nxt) =>
-{
-    ctx.Request.Scheme = "https";
-    return nxt();
-});
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {
