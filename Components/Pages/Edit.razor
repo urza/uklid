@@ -149,7 +149,7 @@
             await Db.SaveChangesAsync();
         }
 
-        Nav.NavigateTo("/", forceLoad: true);
+        Nav.NavigateTo("/");
     }
 
     private async Task Delete()
@@ -163,6 +163,6 @@
                 await Db.SaveChangesAsync();
             }
         }
-        Nav.NavigateTo("/", forceLoad: true);
+        Nav.NavigateTo("/");
     }
 }
