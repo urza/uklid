@@ -17,6 +17,8 @@ builder.Services.AddRazorComponents();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "db", "uklid.db");
@@ -36,6 +38,16 @@ using (var scope = app.Services.CreateScope())
 
 // Configure the HTTP request pipeline.
 app.UseForwardedHeaders();
+
+// Fallback: pokud proxy neposlal X-Forwarded-Proto, vynutíme HTTPS
+if (!app.Environment.IsDevelopment())
+{
+    app.Use((ctx, nxt) =>
+    {
+        ctx.Request.Scheme = "https";
+        return nxt();
+    });
+}
 
 if (!app.Environment.IsDevelopment())
 {
