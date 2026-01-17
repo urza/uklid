@@ -6,10 +6,8 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim());
 });
 
+// Pro SSR aplikaci - jen pass-through, necachujeme
 self.addEventListener('fetch', (event) => {
-    // Network-first strategy for SSR app
-    event.respondWith(
-        fetch(event.request)
-            .catch(() => caches.match(event.request))
-    );
+    // Neinterferujeme s požadavky - necháme je projít na server
+    return;
 });
