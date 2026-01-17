@@ -1,6 +1,7 @@
 using System.Globalization;
 using KdyBylUklid.Components;
 using KdyBylUklid.Data;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents();
+
+// Persistovat Data Protection klíče (pro antiforgery tokeny po restartu kontejneru)
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "db", "keys")));
 
 // Pro reverse proxy (X-Forwarded-Proto header)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -40,14 +45,14 @@ using (var scope = app.Services.CreateScope())
 app.UseForwardedHeaders();
 
 // Debug: vypíše headers z proxy
-app.Use((ctx, nxt) =>
-{
-    var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
-    var forwardedFor = ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-    var scheme = ctx.Request.Scheme;
-    Console.WriteLine($"[Headers] X-Forwarded-Proto: {proto ?? "(none)"}, X-Forwarded-For: {forwardedFor ?? "(none)"}, Scheme: {scheme}");
-    return nxt();
-});
+//app.Use((ctx, nxt) =>
+//{
+//    var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+//    var forwardedFor = ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+//    var scheme = ctx.Request.Scheme;
+//    Console.WriteLine($"[Headers] X-Forwarded-Proto: {proto ?? "(none)"}, X-Forwarded-For: {forwardedFor ?? "(none)"}, Scheme: {scheme}");
+//    return nxt();
+//});
 
 // Fallback: pokud proxy neposlal X-Forwarded-Proto, vynutíme HTTPS
 if (!app.Environment.IsDevelopment())
