@@ -64,6 +64,19 @@ if (!app.Environment.IsDevelopment())
     });
 }
 
+// Logování úprav záznamů
+app.Use(async (ctx, nxt) =>
+{
+    await nxt();
+
+    if (ctx.Request.Method == "POST" && (ctx.Request.Path.StartsWithSegments("/add") || ctx.Request.Path.StartsWithSegments("/edit")))
+    {
+        var ip = ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var action = ctx.Request.Path.StartsWithSegments("/add") ? "přidal" : "upravil";
+        Console.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] IP {ip} {action} záznam");
+    }
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
