@@ -28,6 +28,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+
+// Workaround pro Blazor SSR za reverse proxy (issue #57454)
+app.Use((ctx, nxt) =>
+{
+    ctx.Request.Scheme = "https";
+    return nxt();
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
