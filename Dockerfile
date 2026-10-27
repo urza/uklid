@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403 AS build
 WORKDIR /src
 
 COPY *.csproj ./
@@ -7,7 +7,7 @@ RUN dotnet restore
 COPY . ./
 RUN dotnet publish -c Release -o /app/publish && mkdir -p /app/publish/db
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble-chiseled-extra AS runtime
 WORKDIR /app
 
 COPY --from=build /app/publish .
